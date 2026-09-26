@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diksha · Resume loading</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f6f9fc 0%, #e6f0f5 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            color: #1e2b3c;
+        }
+
+        /* main card – resume preview with loading overlay */
+        .resume-loader {
+            max-width: 900px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 36px;
+            box-shadow: 0 25px 50px -12px rgba(0, 20, 30, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* subtle loading bar top */
+        .progress-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #d9e6ed;
+            z-index: 15;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #1e6f9f, #3fa7d6, #1e6f9f);
+            border-radius: 0 4px 4px 0;
+            box-shadow: 0 0 10px #3fa7d6;
+            animation: fillProgress 2.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes fillProgress {
+            0% { width: 0%; }
+            30% { width: 45%; }
+            65% { width: 80%; }
+            100% { width: 100%; }
+        }
+
+        /* spinner + "loading" text overlay (blurred backdrop) */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(6px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: none;  /* let clicks pass through for demo, but it's visually overlay */
+            animation: fadeOutOverlay 0.8s ease forwards;
+            animation-delay: 2.2s;
+        }
+
+        @keyframes fadeOutOverlay {
+            0% { opacity: 1; backdrop-filter: blur(6px); }
+            99% { opacity: 0; backdrop-filter: blur(0px); }
+            100% { opacity: 0; visibility: hidden; backdrop-filter: blur(0); }
+        }
+
+        .spinner {
+            width: 58px;
+            height: 58px;
+            border: 5px solid rgba(30, 111, 159, 0.15);
+            border-top: 5px solid #1e6f9f;
+            border-right: 5px solid #3fa7d6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 15px rgba(63, 167, 214, 0.2);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+            color: #1e6f9f;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 0.5rem 1.8rem;
+            border-radius: 60px;
+            backdrop-filter: blur(3px);
+            border: 1px solid rgba(30, 111, 159, 0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .loading-text span {
+            animation: pulseDot 1.4s infinite ease-in-out;
+            width: 8px;
+            height: 8px;
+            background: #1e6f9f;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .loading-text span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-text span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 0.3; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* -------------------- resume content (visible after loading) -------------------- */
+        .resume-content {
+            padding: 2.5rem 2.8rem;
+            opacity: 0;
+            animation: revealContent 0.6s ease forwards;
+            animation-delay: 2.5s;
+        }
+
+        @keyframes revealContent {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* header section */
+        .name-title {
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e0eef7;
+            padding-bottom: 1.4rem;
+        }
+
+        .name-title h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #0f2a3f;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+
+        .name-title .subhead {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #2a5778;
+            background: #e9f2f9;
+            display: inline-block;
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+            letter-spacing: 0.2px;
+        }
+
+        /* grid layout */
+        .resume-grid {
+            display: grid;
+            grid-template-columns: 1fr 2.1fr;
+            gap: 2rem 2.2rem;
+        }
+
+        /* left column (sidebar) */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            color: #1e6f9f;
+            margin-bottom: 0.9rem;
+            border-bottom: 2px solid #cde3f0;
+            padding-bottom: 0.45rem;
+        }
+
+        .skill-tag {
+            display: inline-block;
+            background: #eef5fa;
+            color: #175d85;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 0.3rem 0.9rem;
+            border-radius: 30px;
+            margin: 0 0.4rem 0.5rem 0;
+            border: 1px solid #cde3f0;
+            transition: 0.1s;
+        }
+
+        .strength-item, .lang-item {
+            font-size: 0.9rem;
+            padding: 0.3rem 0;
+            color: #233e53;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .strength-item::before {
+            content: "▹";
+            color: #3fa7d6;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .lang-item::before {
+            content: "🌐";
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* right column (main) */
+        .main-col {
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        .edu-item {
+            margin-bottom: 1.2rem;
+        }
+
+        .edu-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #0d3146;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .edu-meta {
+            font-size: 0.8rem;
+            color: #4b6f88;
+            margin-top: 0.2rem;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .percentage {
+            font-weight: 600;
+            color: #1e6f9f;
+            background: #e3f0f8;
+            padding: 0.05rem 0.7rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+        }
+
+        .project-item {
+            margin-bottom: 1.3rem;
+        }
+
+        .project-name {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #0f2a3f;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .project-name::before {
+            content: "⚡";
+            font-size: 0.9rem;
+            color: #3fa7d6;
+        }
+
+        .project-desc {
+            font-size: 0.88rem;
+            color: #2d4b62;
+            margin-top: 0.3rem;
+            padding-left: 1rem;
+            border-left: 2px solid #cde3f0;
+            line-height: 1.5;
+        }
+
+        .pub-item {
+            font-size: 0.9rem;
+            padding: 0.35rem 0;
+            border-bottom: 1px dashed #d9e6ed;
+            color: #1b3c52;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .pub-item:last-child {
+            border-bottom: none;
+        }
+
+        .pub-item::before {
+            content: "📄";
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .summary-text {
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: #1f405a;
+            background: #f5faff;
+            padding: 1rem 1.2rem;
+            border-radius: 18px;
+            border: 1px solid #d2e6f2;
+        }
+
+        /* small adjustments */
+        .inline-percent {
+            font-weight: 600;
+            color: #1e6f9f;
+        }
+
+        .badge {
+            background: #d9ecf7;
+            border-radius: 30px;
+            padding: 0.1rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #0b4b6b;
+        }
+
+        /* mobile */
+        @media (max-width: 650px) {
+            .resume-content {
+                padding: 2rem 1.5rem;
+            }
+            .resume-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .name-title h1 {
+                font-size: 2rem;
+            }
+            .spinner {
+                width: 48px;
+                height: 48px;
+            }
+        }
+
+        /* keep loading overlay clean, but not blocking content after fade */
+        .resume-content {
+            position: relative;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <div class="resume-loader">
+        <!-- top progress bar -->
+        <div class="progress-track">
+            <div class="progress-fill"></div>
+        </div>
+
+        <!-- loading overlay with spinner -->
+        <div class="loading-overlay">
+            <div class="spinner"></div>
+            <div class="loading-text">
+                loading resume
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+
+        <!-- actual resume content (revealed after loading) -->
+        <div class="resume-content">
+            <!-- header -->
+            <div class="name-title">
+                <h1>Diksha</h1>
+                <div class="subhead">Electronics & Communication Engineer</div>
+            </div>
+
+            <!-- grid structure -->
+            <div class="resume-grid">
+                <!-- LEFT SIDEBAR -->
+                <div class="sidebar">
+                    <!-- Education (compact) -->
+                    <div>
+                        <div class="section-title">Education</div>
+                        <div class="edu-item">
+                            <div class="edu-title">B.E. – ECE</div>
+                            <div class="edu-meta">Guru Nanak Dev Engg. College, Mailoor</div>
+                            <div class="edu-meta"><span>2023 – 2027</span> <span class="percentage">73%</span></div>
+                        </div>
+                        <div class="edu-item">
+                            <div class="edu-title">Pre-University (PCMB)</div>
+                            <div class="edu-meta">Shahu Maharaj PU College, Naubad, Bidar</div>
+                            <div class="edu-meta"><span>2021 – 2023</span> <span class="percentage">94.88%</span></div>
+                        </div>
+                        <div class="edu-item">
+                            <div class="edu-title">Secondary School</div>
+                            <div class="edu-meta">Shamrao Patil High School, Thana Kushnoor</div>
+                            <div class="edu-meta"><span>2021</span> <span class="percentage">State Syllabus</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Technical skills -->
+                    <div>
+                        <div class="section-title">Technical Skills</div>
+                        <div>
+                            <span class="skill-tag">Python (Basic)</span>
+                            <span class="skill-tag">C++ (Basic)</span>
+                            <span class="skill-tag">Arduino</span>
+                            <span class="skill-tag">Microcontrollers</span>
+                            <span class="skill-tag">Sensors</span>
+                            <span class="skill-tag">Actuators</span>
+                            <span class="skill-tag">Digital Electronics</span>
+                            <span class="skill-tag">Arduino IDE</span>
+                            <span class="skill-tag">3D Printing</span>
+                            <span class="skill-tag">Canva</span>
+                            <span class="skill-tag">Video Editing</span>
+                        </div>
+                    </div>
+
+                    <!-- Core strengths -->
+                    <div>
+                        <div class="section-title">Core Strengths</div>
+                        <div class="strength-item">Quick Learner & Continuous Learning</div>
+                        <div class="strength-item">Problem Solving</div>
+                        <div class="strength-item">Teamwork</div>
+                        <div class="strength-item">Communication</div>
+                        <div class="strength-item">Adaptability</div>
+                        <div class="strength-item">Positive Attitude</div>
+                    </div>
+
+                    <!-- Languages -->
+                    <div>
+                        <div class="section-title">Languages</div>
+                        <div class="lang-item">English</div>
+                        <div class="lang-item">Hindi</div>
+                        <div class="lang-item">Kannada</div>
+                        <div class="lang-item">Marathi</div>
+                    </div>
+                </div>
+
+                <!-- RIGHT MAIN COLUMN -->
+                <div class="main-col">
+                    <!-- Professional summary -->
+                    <div>
+                        <div class="section-title">Professional Summary</div>
+                        <div class="summary-text">
+                            Electronics and Communication Engineering student with hands-on academic experience in Arduino, sensors, IoT-based systems, and basic programming. Experienced in developing a real-time pulse-rate monitoring project and contributing to a research paper on smart helmet technology. Strong interest in embedded systems, electronics, IoT, and practical problem-solving. Eager to learn, contribute, and grow in an entry-level engineering role.
+                        </div>
+                    </div>
+
+                    <!-- Projects -->
+                    <div>
+                        <div class="section-title">Projects</div>
+                        <div class="project-item">
+                            <div class="project-name">Pulse Rate (BPM) Monitor using Arduino</div>
+                            <div class="project-desc">
+                                Developed a real-time heart-rate monitoring system using Arduino and a pulse sensor. Processed sensor signals to calculate and monitor beats per minute (BPM).
+                            </div>
+                        </div>
+                        <div class="project-item">
+                            <div class="project-name">Smart Helmet for Accident Detection and Alert System</div>
+                            <div class="project-desc">
+                                Worked on an IoT-based accident detection and real-time alert concept using sensors and communication modules. The work was developed as a research paper and published through HBRP.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Publication & Certifications -->
+                    <div>
+                        <div class="section-title">Publication & Certifications</div>
+                        <div class="pub-item">Research Paper Publication Certificate</div>
+                        <div class="pub-item">Smart Helmet for Accident Detection and Alert System – Training Certificate</div>
+                        <div class="pub-item">3D Printing</div>
+                    </div>
+
+                    <!-- small extra hint (kept clean) -->
+                    <div style="font-size: 0.7rem; color: #9bb7cc; margin-top: 0.4rem; letter-spacing: 0.3px;">
+                        ⚡ resume loaded successfully
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
